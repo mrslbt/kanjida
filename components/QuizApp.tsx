@@ -24,6 +24,7 @@ export default function QuizApp() {
   const [fadeIn, setFadeIn] = useState(false)
   const [showResultsPopup, setShowResultsPopup] = useState(false)
   const [correctAnswersInSession, setCorrectAnswersInSession] = useState(0)
+  const [idleQuestionCount, setIdleQuestionCount] = useState(0)
 
   const {
     score,
@@ -92,11 +93,6 @@ export default function QuizApp() {
   }
 
   const loadNextQuestion = () => {
-    if (questionsAnswered >= QUESTIONS_PER_SESSION) {
-      endSession()
-      return
-    }
-
     const nextKanji = getNextKanji(askedKanjiInSession)
     if (!nextKanji) return
 
@@ -128,6 +124,7 @@ export default function QuizApp() {
 
     setSelectedAnswer(index)
     setIsActive(false)
+    setIdleQuestionCount(0) // Reset idle count when user answers
 
     const isCorrect = currentQuestion!.choices[index] === currentQuestion!.correctAnswer
 
@@ -139,10 +136,16 @@ export default function QuizApp() {
     }
 
     setShowResult(true)
-    setQuestionsAnswered(prev => prev + 1)
+
+    const newQuestionsAnswered = questionsAnswered + 1
+    setQuestionsAnswered(newQuestionsAnswered)
 
     setTimeout(() => {
-      loadNextQuestion()
+      if (newQuestionsAnswered >= QUESTIONS_PER_SESSION) {
+        endSession()
+      } else {
+        loadNextQuestion()
+      }
     }, 1500)
   }
 
@@ -151,10 +154,28 @@ export default function QuizApp() {
     answerIncorrect()
     setShowResult(true)
     setSelectedAnswer(-1)
-    setQuestionsAnswered(prev => prev + 1)
+
+    const newIdleCount = idleQuestionCount + 1
+    setIdleQuestionCount(newIdleCount)
+
+    // If idle for 5 questions, return to main page
+    if (newIdleCount >= 5) {
+      setTimeout(() => {
+        endSession()
+        closeResultsAndReset()
+      }, 1500)
+      return
+    }
+
+    const newQuestionsAnswered = questionsAnswered + 1
+    setQuestionsAnswered(newQuestionsAnswered)
 
     setTimeout(() => {
-      loadNextQuestion()
+      if (newQuestionsAnswered >= QUESTIONS_PER_SESSION) {
+        endSession()
+      } else {
+        loadNextQuestion()
+      }
     }, 1500)
   }
 
@@ -162,6 +183,7 @@ export default function QuizApp() {
     setSessionActive(true)
     setQuestionsAnswered(0)
     setCorrectAnswersInSession(0)
+    setIdleQuestionCount(0)
     setAskedKanjiInSession(new Set())
     setShowResultsPopup(false)
     loadNextQuestion()
@@ -240,18 +262,8 @@ export default function QuizApp() {
               </div>
 
               <button
-                onClick={() => {
-                  closeResultsAndReset()
-                  startSession()
-                }}
-                className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg transform transition-all hover:scale-105 active:scale-95 shadow-lg"
-              >
-                Play Again 🔄
-              </button>
-
-              <button
                 onClick={closeResultsAndReset}
-                className="w-full mt-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-lg transform transition-all hover:scale-105 active:scale-95"
+                className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg transform transition-all hover:scale-105 active:scale-95 shadow-lg"
               >
                 Back to Home
               </button>
