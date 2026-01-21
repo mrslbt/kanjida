@@ -22,6 +22,7 @@ interface GameState {
   answeredToday: number
   dailyGoal: number
   totalMastered: number
+  mode: 'visual' | 'deep'
 
   // Actions
   setCurrentKanji: (kanji: KanjiCard | null) => void
@@ -30,6 +31,7 @@ interface GameState {
   resetGame: () => void
   initializeDeck: (deck: KanjiCard[]) => void
   getNextKanji: (excludeKanji?: Set<string>) => KanjiCard | null
+  setMode: (mode: 'visual' | 'deep') => void
 }
 
 export const useGameStore = create<GameState>()(
@@ -44,8 +46,11 @@ export const useGameStore = create<GameState>()(
       answeredToday: 0,
       dailyGoal: 100,
       totalMastered: 0,
+      mode: 'visual',
 
       setCurrentKanji: (kanji) => set({ currentKanji: kanji }),
+
+      setMode: (mode) => set({ mode }),
 
       answerCorrect: () => {
         const state = get()

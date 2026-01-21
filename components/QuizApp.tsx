@@ -29,11 +29,13 @@ export default function QuizApp() {
     kanjiDeck,
     answeredToday,
     dailyGoal,
+    mode,
     initializeDeck,
     getNextKanji,
     setCurrentKanji,
     answerCorrect,
     answerIncorrect,
+    setMode,
   } = useGameStore()
 
   const kanjiStats = getKanjiCountByLevel()
@@ -79,15 +81,16 @@ export default function QuizApp() {
     setAskedKanjiInSession(prev => new Set(prev).add(nextKanji.kanji))
     setCurrentKanji(nextKanji)
 
-    const mode = Math.random() > 0.5 ? 'reading' : 'meaning'
-    const choices = generateChoices(nextKanji, kanjiDeck, mode)
-    const correctAnswer = mode === 'reading' ? nextKanji.reading : nextKanji.meaning
+    const { mode: userMode } = useGameStore.getState()
+    const questionMode = userMode === 'visual' ? 'meaning' : (Math.random() > 0.5 ? 'reading' : 'meaning')
+    const choices = generateChoices(nextKanji, kanjiDeck, questionMode)
+    const correctAnswer = questionMode === 'reading' ? nextKanji.reading : nextKanji.meaning
 
     setCurrentQuestion({
       kanji: nextKanji,
       choices,
       correctAnswer,
-      mode,
+      mode: questionMode,
     })
 
     setSelectedAnswer(null)
@@ -277,6 +280,37 @@ export default function QuizApp() {
             ))}
           </div>
 
+          {/* Mode Selector */}
+          <div className="mb-6">
+            <h3 className="font-semibold mb-3 text-gray-700 text-center">Difficulty Mode</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setMode('visual')}
+                className={`p-4 rounded-lg font-semibold transition-all transform hover:scale-105 active:scale-95 ${
+                  mode === 'visual'
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <div className="text-2xl mb-1">👁️</div>
+                <div className="text-sm font-bold">Visual Mode</div>
+                <div className="text-xs opacity-75 mt-1">Kanji + English</div>
+              </button>
+              <button
+                onClick={() => setMode('deep')}
+                className={`p-4 rounded-lg font-semibold transition-all transform hover:scale-105 active:scale-95 ${
+                  mode === 'deep'
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <div className="text-2xl mb-1">🧠</div>
+                <div className="text-sm font-bold">Deep Mode</div>
+                <div className="text-xs opacity-75 mt-1">+ Reading Practice</div>
+              </button>
+            </div>
+          </div>
+
           <button
             onClick={startSession}
             className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-xl font-bold py-4 px-8 rounded-lg transform transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
@@ -346,8 +380,8 @@ export default function QuizApp() {
 
         {/* Question Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 transform transition-all hover:shadow-3xl">
-          {/* Level Badge */}
-          <div className="mb-4">
+          {/* Level Badge and Mode Badge */}
+          <div className="mb-4 flex items-center justify-between">
             <span
               className={`inline-block px-3 py-1 rounded-full text-sm font-semibold transition-all hover:scale-110 ${
                 currentQuestion.kanji.level === 'N5' ? 'bg-green-100 text-green-700' :
@@ -357,6 +391,15 @@ export default function QuizApp() {
               }`}
             >
               {currentQuestion.kanji.level}
+            </span>
+            <span
+              className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                mode === 'visual'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-purple-100 text-purple-700'
+              }`}
+            >
+              {mode === 'visual' ? '👁️ Visual' : '🧠 Deep'}
             </span>
           </div>
 
