@@ -22,6 +22,8 @@ export default function QuizApp() {
   const [sessionActive, setSessionActive] = useState(false)
   const [askedKanjiInSession, setAskedKanjiInSession] = useState<Set<string>>(new Set())
   const [fadeIn, setFadeIn] = useState(false)
+  const [showResultsPopup, setShowResultsPopup] = useState(false)
+  const [correctAnswersInSession, setCorrectAnswersInSession] = useState(0)
 
   const {
     score,
@@ -69,6 +71,26 @@ export default function QuizApp() {
     }
   }, [isActive, timeLeft, showResult])
 
+  const getFishData = (correctAnswers: number) => {
+    const fishMap = [
+      { name: 'anchovy', emoji: '🐟', minScore: 1 },
+      { name: 'pufferfish', emoji: '🐡', minScore: 4 },
+      { name: 'tuna', emoji: '🐟', minScore: 5 },
+      { name: 'swordfish', emoji: '🗡️🐟', minScore: 6 },
+      { name: 'great white shark', emoji: '🦈', minScore: 7 },
+      { name: 'basking shark', emoji: '🦈', minScore: 8 },
+      { name: 'whale shark', emoji: '🦈', minScore: 9 },
+      { name: 'blue whale', emoji: '🐋', minScore: 10 },
+    ]
+
+    for (let i = fishMap.length - 1; i >= 0; i--) {
+      if (correctAnswers >= fishMap[i].minScore) {
+        return fishMap[i]
+      }
+    }
+    return { name: 'anchovy', emoji: '🐟', minScore: 1 }
+  }
+
   const loadNextQuestion = () => {
     if (questionsAnswered >= QUESTIONS_PER_SESSION) {
       endSession()
@@ -111,6 +133,7 @@ export default function QuizApp() {
 
     if (isCorrect) {
       answerCorrect()
+      setCorrectAnswersInSession(prev => prev + 1)
     } else {
       answerIncorrect()
     }
@@ -138,7 +161,9 @@ export default function QuizApp() {
   const startSession = () => {
     setSessionActive(true)
     setQuestionsAnswered(0)
+    setCorrectAnswersInSession(0)
     setAskedKanjiInSession(new Set())
+    setShowResultsPopup(false)
     loadNextQuestion()
   }
 
@@ -146,6 +171,11 @@ export default function QuizApp() {
     setSessionActive(false)
     setCurrentQuestion(null)
     setIsActive(false)
+    setShowResultsPopup(true)
+  }
+
+  const closeResultsAndReset = () => {
+    setShowResultsPopup(false)
     setAskedKanjiInSession(new Set())
   }
 
@@ -177,6 +207,61 @@ export default function QuizApp() {
   const levelProgress = getLevelProgress()
   const difficultKanji = getDifficultKanji()
 
+  // Results Popup
+  if (showResultsPopup) {
+    const fishData = getFishData(correctAnswersInSession)
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full transform transition-all animate-slideIn">
+            <div className="text-center">
+              <h2 className="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+                {correctAnswersInSession}/{QUESTIONS_PER_SESSION}
+              </h2>
+              <div className="text-9xl mb-4 animate-bounce">
+                {fishData.emoji}
+              </div>
+              <p className="text-2xl font-bold text-gray-800 mb-6">
+                You caught a {fishData.name}!
+              </p>
+
+              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-2xl font-bold text-blue-600">{score}</div>
+                    <div className="text-xs text-gray-600">Total Score</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-green-600">{streak}</div>
+                    <div className="text-xs text-gray-600">Current Streak</div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  closeResultsAndReset()
+                  startSession()
+                }}
+                className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg transform transition-all hover:scale-105 active:scale-95 shadow-lg"
+              >
+                Play Again 🔄
+              </button>
+
+              <button
+                onClick={closeResultsAndReset}
+                className="w-full mt-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-lg transform transition-all hover:scale-105 active:scale-95"
+              >
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!sessionActive || !currentQuestion) {
     return (
       <div className={`min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4 transition-opacity duration-500 ${fadeIn ? 'opacity-100' : 'opacity-0'}`}>
@@ -187,23 +272,6 @@ export default function QuizApp() {
           <p className="text-center text-gray-600 mb-8 text-lg">
             Master N2 Kanji with Spaced Repetition
           </p>
-
-          {questionsAnswered > 0 && (
-            <div className="mb-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-200 animate-slideIn">
-              <h2 className="text-2xl font-bold text-center mb-2 text-gray-800">
-                Session Complete! 🎉
-              </h2>
-              <p className="text-center text-gray-600 mb-4">
-                You completed {questionsAnswered} questions
-              </p>
-              <button
-                onClick={startSession}
-                className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transform transition-all hover:scale-105 active:scale-95 shadow-lg"
-              >
-                Play Again 🔄
-              </button>
-            </div>
-          )}
 
           {/* Stats Overview */}
           <div className="grid grid-cols-2 gap-4 mb-8">
